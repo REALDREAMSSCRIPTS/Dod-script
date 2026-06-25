@@ -1,0 +1,193 @@
+--[[
+    REALDREAMSSCRIPTS - Combat Pack Otimizado
+    Correções: Hitbox afeta inimigos, melhor estabilidade de loops.
+]]
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+
+-- Configurações
+local settings = {
+    dieOfDeath = false,
+    infiniteStamina = false,
+    hitboxEnabled = false,
+    hitboxSize = 5,
+    hitboxTransparency = 0.5,
+    hitboxColor = Color3.fromRGB(255, 0, 0)
+}
+
+-- ========== FUNÇÕES PRINCIPAIS ==========
+
+-- God Mode Local (Prevenção ativa)
+RunService.Heartbeat:Connect(function()
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum and settings.dieOfDeath then
+            hum.BreakJointsOnDeath = false
+            if hum.Health < 20 then -- Previne chegar a 0
+                hum.Health = hum.MaxHealth
+            end
+        end
+    end
+end)
+
+-- Stamina Infinita
+RunService.Heartbeat:Connect(function()
+    local char = player.Character
+    if char and settings.infiniteStamina then
+        local stamina = char:FindFirstChild("Stamina") or char:FindFirstChild("Energy") or char:FindFirstChild("StaminaBar")
+        if stamina and stamina:IsA("ValueBase") then
+            stamina.Value = stamina.MaxValue or 100
+        end
+    end
+end)
+
+-- Hitbox Expander (Aplica nos OUTROS jogadores)
+local function updateHitboxes()
+    for _, enemy in ipairs(Players:GetPlayers()) do
+        if enemy ~= player and enemy.Character then
+            local root = enemy.Character:FindFirstChild("HumanoidRootPart")
+            if root then
+                if settings.hitboxEnabled then
+                    -- Altera o tamanho da própria RootPart do inimigo para facilitar o hit
+                    root.Size = Vector3.new(settings.hitboxSize, settings.hitboxSize, settings.hitboxSize)
+                    root.Transparency = settings.hitboxTransparency
+                    root.Color = settings.hitboxColor
+                    root.Material = Enum.Material.Neon
+                    root.CanCollide = false
+                else
+                    -- Reseta ao tamanho padrão do Roblox se desligado
+                    root.Size = Vector3.new(2, 2, 1)
+                    root.Transparency = 1
+                    root.CanCollide = false
+                end
+            end
+        end
+    end
+end
+
+-- Mantém as hitboxes dos inimigos atualizadas se eles spawnarem
+RunService.RenderStepped:Connect(function()
+    if settings.hitboxEnabled then
+        updateHitboxes()
+    end
+end)
+
+-- ========== INTERFACE (GUI) ==========
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "REALDREAMSSCRIPTS_GUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 300, 0, 400)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true -- Mantido por simplicidade, mas o ideal é fazer via UIS
+mainFrame.Parent = screenGui
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, 0, 0, 40)
+titleLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+titleLabel.Text = "REALDREAMSSCRIPTS V2"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.TextScaled = true
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.Parent = mainFrame
+
+-- Botão Die of Death
+local dieButton = Instance.new("TextButton")
+dieButton.Size = UDim2.new(0.9, 0, 0, 50)
+dieButton.Position = UDim2.new(0.05, 0, 0.15, 0)
+dieButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+dieButton.Text = "God Mode: DESLIGADO"
+dieButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+dieButton.TextScaled = true
+dieButton.Font = Enum.Font.Gotham
+dieButton.Parent = mainFrame
+
+dieButton.MouseButton1Click:Connect(function()
+    settings.dieOfDeath = not settings.dieOfDeath
+    dieButton.Text = settings.dieOfDeath and "God Mode: LIGADO" or "God Mode: DESLIGADO"
+    dieButton.BackgroundColor3 = settings.dieOfDeath and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(60, 60, 60)
+end)
+
+-- Botão Stamina
+local staminaButton = Instance.new("TextButton")
+staminaButton.Size = UDim2.new(0.9, 0, 0, 50)
+staminaButton.Position = UDim2.new(0.05, 0, 0.30, 0)
+staminaButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+staminaButton.Text = "Stamina Infinita: DESLIGADO"
+staminaButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+staminaButton.TextScaled = true
+staminaButton.Font = Enum.Font.Gotham
+staminaButton.Parent = mainFrame
+
+staminaButton.MouseButton1Click:Connect(function()
+    settings.infiniteStamina = not settings.infiniteStamina
+    staminaButton.Text = settings.infiniteStamina and "Stamina Infinita: LIGADO" or "Stamina Infinita: DESLIGADO"
+    staminaButton.BackgroundColor3 = settings.infiniteStamina and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(60, 60, 60)
+end)
+
+-- Botão Hitbox
+local hitboxButton = Instance.new("TextButton")
+hitboxButton.Size = UDim2.new(0.9, 0, 0, 50)
+hitboxButton.Position = UDim2.new(0.05, 0, 0.45, 0)
+hitboxButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+hitboxButton.Text = "Hitbox Inimiga: DESLIGADO"
+hitboxButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+hitboxButton.TextScaled = true
+hitboxButton.Font = Enum.Font.Gotham
+hitboxButton.Parent = mainFrame
+
+hitboxButton.MouseButton1Click:Connect(function()
+    settings.hitboxEnabled = not settings.hitboxEnabled
+    hitboxButton.Text = settings.hitboxEnabled and "Hitbox Inimiga: LIGADO" or "Hitbox Inimiga: DESLIGADO"
+    hitboxButton.BackgroundColor3 = settings.hitboxEnabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(60, 60, 60)
+    updateHitboxes()
+end)
+
+-- Input de Tamanho
+local sizeInput = Instance.new("TextBox")
+sizeInput.Size = UDim2.new(0.9, 0, 0, 40)
+sizeInput.Position = UDim2.new(0.05, 0, 0.65, 0)
+sizeInput.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+sizeInput.PlaceholderText = "Tamanho da Hitbox (1-30)"
+sizeInput.Text = tostring(settings.hitboxSize)
+sizeInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+sizeInput.TextScaled = true
+sizeInput.Font = Enum.Font.Gotham
+sizeInput.Parent = mainFrame
+
+sizeInput.FocusLost:Connect(function()
+    local newSize = tonumber(sizeInput.Text)
+    if newSize and newSize >= 1 and newSize <= 30 then
+        settings.hitboxSize = newSize
+        if settings.hitboxEnabled then updateHitboxes() end
+    else
+        sizeInput.Text = tostring(settings.hitboxSize)
+    end
+end)
+
+-- Fechar
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0.9, 0, 0, 40)
+closeButton.Position = UDim2.new(0.05, 0, 0.85, 0)
+closeButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+closeButton.Text = "Fechar GUI"
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.TextScaled = true
+closeButton.Font = Enum.Font.Gotham
+closeButton.Parent = mainFrame
+
+closeButton.MouseButton1Click:Connect(function()
+    settings.hitboxEnabled = false
+    updateHitboxes() -- Reseta as hitboxes antes de fechar
+    screenGui:Destroy()
+end)
+
+print("[REALDREAMSSCRIPTS] Carregado com correções aplicadas!")
